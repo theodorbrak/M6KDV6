@@ -188,16 +188,25 @@ class Graph:
         
 
 pygame.init()
-screen = pygame.display.set_mode((1200, 650)) #built for 1280 x 720 i have to do this
+
+
+info = pygame.display.Info()
+screen_w, screen_h = info.current_w, info.current_h
+
+w_coef, h_coef = screen_w/1280, screen_h/720
+main_coef = min(w_coef, h_coef)
+
+screen = pygame.display.set_mode((1200*w_coef, 650*h_coef)) #built for 1280 x 720 i have to do this
 clock = pygame.time.Clock()
 pygame.display.set_caption("Satisfactory node graph calculator") # wink wink
+
 
 font_sidebar = pygame.font.SysFont(None, 30)
 font_edit_menu = pygame.font.SysFont(None, 40)
 
 eId, nId = 0, 0 # Indexes
-node_size = 36.0 # Size in pixels of a node
-edge_thickness = 4 # Width in pixels of an edgeeeeeee
+node_size = 36.0*main_coef # Size in pixels of a node
+edge_thickness = 4*main_coef # Width in pixels of an edgeeeeeee
 camera_position = [0,0]
 typed = ""
 
@@ -391,3 +400,17 @@ while running:
     pygame.display.flip()
 pygame.quit()
 sys.exit()
+
+#on phone currently so i will plan ahead, for now
+# Add sound to button clicks
+# Actually implement string to equation convertion
+# And if doesnt work (ex:writint bullshit)-> error sound but continue creation with empty equation module
+# Add text under/above nodes indicating need / produce
+# Add window modularity
+# Add ability to overlay images on nodes
+# Make settings tab actually functional
+# Make a main setting menu : sounds, colors, sizes, bg color with possibility for image
+# Save system, (to not have to keep open / rebuild on every launch
+# File choosing menu (goes with save system)
+# Camera movement, zooming in/out (now that'll be a pain)
+#yeah i dont what more it would need... a battlepass ?
