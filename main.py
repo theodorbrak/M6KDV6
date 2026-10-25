@@ -5,7 +5,7 @@
 
 
 
-import math, pygame, sys
+import math, pygame, sys, asyncio
 
 
 def draw_text_box(screen, draw_underscore, text, font, pos=(0, 325)):
@@ -187,219 +187,226 @@ class Graph:
 
         
 
-pygame.init()
+
+async def main():
+    global node_size
+
+    pygame.init()
 
 
-info = pygame.display.Info()
-screen_w, screen_h = info.current_w, info.current_h
+    info = pygame.display.Info()
+    #screen_w, screen_h = info.current_w, info.current_h # downloadable version
+    screen_w, screen_h = 1280, 720 # web version
 
-w_coef, h_coef = screen_w/1280, screen_h/720
-main_coef = min(w_coef, h_coef)
+    w_coef, h_coef = screen_w/1280, screen_h/720
+    main_coef = min(w_coef, h_coef)
 
-screen = pygame.display.set_mode((1200*w_coef, 650*h_coef)) #built for 1280 x 720 i have to do this
-clock = pygame.time.Clock()
-pygame.display.set_caption("Satisfactory node graph calculator") # wink wink
-
-
-font_sidebar = pygame.font.SysFont(None, 30)
-font_edit_menu = pygame.font.SysFont(None, 40)
-
-eId, nId = 0, 0 # Indexes
-node_size = 36.0*main_coef # Size in pixels of a node
-edge_thickness = 4*main_coef # Width in pixels of an edgeeeeeee
-camera_position = [0,0]
-typed = ""
+    screen = pygame.display.set_mode((int(1200*w_coef), int(650*h_coef))) #built for 1280 x 720 i have to do this
+    clock = pygame.time.Clock()
+    pygame.display.set_caption("Satisfactory node graph calculator") # wink wink
 
 
-status = {"pickup" : [False, None], 
-          "setting" : [False, None], 
-          "edit_tab" : True, 
-          "delete_node" : [False, None],
-          "delete_edge" : [False, [None,None]],
-          "add_edge" : [False, None],
-          "typing" : [False, None]}
+    font_sidebar = pygame.font.SysFont(None, 30)
+    font_edit_menu = pygame.font.SysFont(None, 40)
 
-bar_offset = {"edit_tab" : 0}
-default_images = {"close.png" : pygame.image.load("assets/image/default/close.png"), "add.png" : pygame.image.load("assets/image/default/add.png"),"substract.png" : pygame.image.load("assets/image/default/substract.png")}
-default_sounds = {"error.ogg" : pygame.mixer.Sound("assets/sound/default/error.ogg")}
-all_fancy_text = {"Nodes" : render_outlined_text("Nodes", (255,255,255), font_edit_menu, 2), "Edges" : render_outlined_text("Edges", (255,255,255), font_edit_menu, 2)}
+    eId, nId = 0, 0 # Indexes
+    node_size = 36.0*main_coef # Size in pixels of a node
+    edge_thickness = int(4*main_coef) # Width in pixels of an edgeeeeeee
+    camera_position = [0,0]
+    typed = ""
 
 
-screen.fill((255, 220, 220))
-graph = Graph()
+    status = {"pickup" : [False, None], 
+            "setting" : [False, None], 
+            "edit_tab" : True, 
+            "delete_node" : [False, None],
+            "delete_edge" : [False, [None,None]],
+            "add_edge" : [False, None],
+            "typing" : [False, None]}
 
-test_node_1 = Node([100, 50], 0)
-graph.add_node(test_node_1)
-test_node_2 = Node([80, 500], 1)
-graph.add_node(test_node_2)
-test_node_3 = Node([800, 500], 2)
-graph.add_node(test_node_3)
-nId = 3
+    bar_offset = {"edit_tab" : 0}
+    default_images = {"close.png" : pygame.image.load("assets/image/default/close.png"), "add.png" : pygame.image.load("assets/image/default/add.png"),"substract.png" : pygame.image.load("assets/image/default/substract.png")}
+    default_sounds = {"error.ogg" : pygame.mixer.Sound("assets/sound/default/error.ogg")}
+    all_fancy_text = {"Nodes" : render_outlined_text("Nodes", (255,255,255), font_edit_menu, 2), "Edges" : render_outlined_text("Edges", (255,255,255), font_edit_menu, 2)}
 
-test_edge_1 = Edge(test_node_1, test_node_2, "3x+2",0)
-graph.add_edge(test_edge_1)
-test_edge_2 = Edge(test_node_3, test_node_2, "3x**2+2",1)
-graph.add_edge(test_edge_2)
-eId = 2
 
-#graph.remove_node(test_node_3) making money
+    screen.fill((255, 220, 220))
+    graph = Graph()
 
-running = True
-while running:
-    dt = clock.tick(60)/1000
-    mx, my = pygame.mouse.get_pos()
+    test_node_1 = Node([100, 50], 0)
+    graph.add_node(test_node_1)
+    test_node_2 = Node([80, 500], 1)
+    graph.add_node(test_node_2)
+    test_node_3 = Node([800, 500], 2)
+    graph.add_node(test_node_3)
+    nId = 3
 
-    if status["pickup"][0]:
-        status["pickup"][1].position = (mx, my)
-    
+    test_edge_1 = Edge(test_node_1, test_node_2, "3x+2",0)
+    graph.add_edge(test_edge_1)
+    test_edge_2 = Edge(test_node_3, test_node_2, "3x**2+2",1)
+    graph.add_edge(test_edge_2)
+    eId = 2
 
-    for event in pygame.event.get():
-        if event.type == pygame.KEYDOWN and status["typing"][0]:
-            if event.key == pygame.K_RETURN:
-                typing_result = typed
-                status["typing"][0] = False
-            elif event.key == pygame.K_BACKSPACE:
-                typed = typed[:-1]
-            else:
-                typed += event.unicode
-                
-        if event.type == pygame.MOUSEBUTTONDOWN and not status["typing"][0]:
-            if event.button == 1:
-                trio_check = status["delete_node"][0] or status["delete_edge"][0] or status["add_edge"][0]
+    #graph.remove_node(test_node_3) making money
 
-                if status["delete_node"][0]:
-                    del_node, bool_ = mouse_press_status_toggle_check(status, "delete_node", (mx,my), graph)
-                    if bool_:
-                        if del_node.nId == status["delete_node"][1]:
-                            graph.remove_node( graph.nodes[del_node.nId])
-                            status["delete_node"][1] = None
-                        else:
-                            status["delete_node"][1] = del_node.nId
+    running = True
+    while running:
+        dt = clock.tick(60)/1000
+        mx, my = pygame.mouse.get_pos()
 
-                if status["add_edge"][0] or status["delete_edge"][0]:
-                    active = "add_edge" if status["add_edge"][0] else "delete_edge"
+        if status["pickup"][0]:
+            status["pickup"][1].position = (mx, my)
+        
+
+        for event in pygame.event.get():
+            if event.type == pygame.KEYDOWN and status["typing"][0]:
+                if event.key == pygame.K_RETURN:
+                    typing_result = typed
+                    status["typing"][0] = False
+                elif event.key == pygame.K_BACKSPACE:
+                    typed = typed[:-1]
+                else:
+                    typed += event.unicode
                     
-                    selected_node, bool_ = mouse_press_status_toggle_check(status, active, (mx,my), graph)
-                    if bool_:
-                        if status[active][1] == None:
-                            status[active][1] = selected_node
-
-                        elif status[active][1] == selected_node:
-                            status[active][1] = None
-
-                        else:
-                            edge_exist_check, edge = check_edge_existence(graph, status[active][1], selected_node)
-                            if edge_exist_check and active == "delete_edge":
-                                graph.remove_edge(edge)
-                            elif not edge_exist_check and active == "add_edge":
-                                status["typing"] = [True, "add_edge"]
+            if event.type == pygame.MOUSEBUTTONDOWN and not status["typing"][0]:
+                trio_check = status["delete_node"][0] or status["delete_edge"][0] or status["add_edge"][0]
+                
+                if event.button == 1:
+                    if status["delete_node"][0]:
+                        del_node, bool_ = mouse_press_status_toggle_check(status, "delete_node", (mx,my), graph)
+                        if bool_:
+                            if del_node.nId == status["delete_node"][1]:
+                                graph.remove_node( graph.nodes[del_node.nId])
+                                status["delete_node"][1] = None
                             else:
-                                default_sounds["error.ogg"].play()
+                                status["delete_node"][1] = del_node.nId
 
-                if not trio_check:
-                    mouse_press_status_toggle_check(status, "pickup", (mx,my), graph)
-                if not status["pickup"][0]:
-                    if 1150<=mx<=1182+bar_offset["edit_tab"] and 560<=my<=592: #button top left corner 1150, 560
-                        status["edit_tab"] = not status["edit_tab"]
-                        if not bar_offset["edit_tab"]:
-                            bar_offset["edit_tab"] = 18
-                        else:
-                            bar_offset["edit_tab"] = 0
+                    if status["add_edge"][0] or status["delete_edge"][0]:
+                        active = "add_edge" if status["add_edge"][0] else "delete_edge"
+                        
+                        selected_node, bool_ = mouse_press_status_toggle_check(status, active, (mx,my), graph)
+                        if bool_:
+                            if status[active][1] == None:
+                                status[active][1] = selected_node
 
-                    elif 1000<=mx<=1032 and 585<=my<=617 and status["edit_tab"]: # 1000:1032x, 585:617y
-                        graph.add_node(Node((600, 325), nId))
-                        nId += 1
+                            elif status[active][1] == selected_node:
+                                status[active][1] = None
 
-                    elif 960<=mx<=992 and 585<=my<=617 and status["edit_tab"] and (status["delete_node"][0] or not trio_check): # 960:992x,     585:617y
-                        status["delete_node"][0] = not status["delete_node"][0]
+                            else:
+                                edge_exist_check, edge = check_edge_existence(graph, status[active][1], selected_node)
+                                if edge_exist_check and active == "delete_edge":
+                                    graph.remove_edge(edge)
+                                elif not edge_exist_check and active == "add_edge":
+                                    status["typing"] = [True, "add_edge"]
+                                else:
+                                    default_sounds["error.ogg"].play()
+
+                    if not trio_check:
+                        mouse_press_status_toggle_check(status, "pickup", (mx,my), graph)
+                    if not status["pickup"][0]:
+                        if 1150<=mx<=1182+bar_offset["edit_tab"] and 560<=my<=592: #button top left corner 1150, 560
+                            status["edit_tab"] = not status["edit_tab"]
+                            if not bar_offset["edit_tab"]:
+                                bar_offset["edit_tab"] = 18
+                            else:
+                                bar_offset["edit_tab"] = 0
+
+                        elif 1000<=mx<=1032 and 585<=my<=617 and status["edit_tab"]: # 1000:1032x, 585:617y
+                            graph.add_node(Node((600, 325), nId))
+                            nId += 1
+
+                        elif 960<=mx<=992 and 585<=my<=617 and status["edit_tab"] and (status["delete_node"][0] or not trio_check): # 960:992x,     585:617y
+                            status["delete_node"][0] = not status["delete_node"][0]
+                            status["delete_node"][1] = None
+
+                        #toilet break followed by instant meal breek
+
+                        elif 850<=mx<=882 and 585<=my<=617 and status["edit_tab"] and (status["add_edge"][0] or not trio_check): # 850:882,   585:617y
+                            status["add_edge"][0] = not status["add_edge"][0]
+                            status["add_edge"][1] = None
+
+                        elif 810<=mx<=842 and 585<=my<=617 and status["edit_tab"] and (status["delete_edge"][0] or not trio_check):# 810:842,     585:617y
+                            status["delete_edge"][0] = not status["delete_edge"][0]
+                            status["delete_edge"][1] = None
+
+                        
+
+                if event.button == 3:
+                    if not trio_check:
+                        mouse_press_status_toggle_check(status, "setting", (mx,my), graph)
+                    else:
                         status["delete_node"][1] = None
-
-                    #toilet break followed by instant meal breek
-
-                    elif 850<=mx<=882 and 585<=my<=617 and status["edit_tab"] and (status["add_edge"][0] or not trio_check): # 850:882,   585:617y
-                        status["add_edge"][0] = not status["add_edge"][0]
                         status["add_edge"][1] = None
-
-                    elif 810<=mx<=842 and 585<=my<=617 and status["edit_tab"] and (status["delete_edge"][0] or not trio_check):# 810:842,     585:617y
-                        status["delete_edge"][0] = not status["delete_edge"][0]
                         status["delete_edge"][1] = None
 
-                    
 
-            if event.button == 3:
-                if not trio_check:
-                    mouse_press_status_toggle_check(status, "setting", (mx,my), graph)
-                else:
-                    status["delete_node"][1] = None
-                    status["add_edge"][1] = None
-                    status["delete_edge"][1] = None
+            if event.type == pygame.QUIT:
+                running = False
 
+        if status["typing"][0] == False and status["typing"][1] != None:
+            if status["typing"][1] == "add_edge":
+                graph.add_edge(Edge(status["add_edge"][1], selected_node, typing_result, eId))
+                eId += 1
+                status["typing"][1] = None
+                typed = ""
 
-        if event.type == pygame.QUIT:
-            running = False
-
-    if status["typing"][0] == False and status["typing"][1] != None:
-        if status["typing"][1] == "add_edge":
-            graph.add_edge(Edge(status["add_edge"][1], selected_node, typing_result, eId))
-            eId += 1
-            status["typing"][1] = None
-            typed = ""
-
-            status["add_edge"] = [False, None]
-    
-    screen.fill((255, 220, 220))
-    graph.draw(screen, camera_position, node_size, edge_thickness)
-
-    if status["typing"][0]:
-        time = pygame.time.get_ticks()
-        show_underscore = (time//500)%2
-        draw_text_box(screen, show_underscore, typed, font_edit_menu)
-
-    if status["add_edge"][0]:
-        add_mode1 = font_edit_menu.render("Adding an", True, (40,40,40))
-        add_mode2 = font_edit_menu.render("Edge", True, (40,40,40))
-        screen.blit(add_mode1, (1000, 20))
-        screen.blit(add_mode2, (1000, 45))
-        if not status["add_edge"][1] == None:
-            node_pos = status["add_edge"][1].position
-            draw_disc(screen, (0, 255, 0, 180), int(node_size), node_pos)
-
-    if status["delete_edge"][0]:
-        if not status["delete_edge"][1] == None:
-            node_pos = status["delete_edge"][1].position
-            draw_disc(screen, (255, 128, 0, 180), int(node_size), node_pos)
-
-    if status["delete_node"][0] or status["delete_edge"][0]:
-        del_mode = font_edit_menu.render("Deletion Mode", True, (40,40,40))
-        screen.blit(del_mode, (1000, 20))
-        if status["delete_node"][0]:
-            del_mode2 = font_edit_menu.render("[Node]", True, (40,40,40))
-        else:
-            del_mode2 = font_edit_menu.render("[Edge]", True, (40,40,40))
-        screen.blit(del_mode2, (1000, 45))
-    
-    if not status["delete_node"][1] == None:
-        node_pos = graph.nodes[status["delete_node"][1]].position
-        draw_disc(screen, (255, 0, 0, 180), int(node_size), node_pos)
-        text = font_sidebar.render("Confirm ?", True, (40,40,40))
-        screen.blit(text, (node_pos[0]-node_size, node_pos[1]-node_size-20))
-
-    if status["setting"][0]:
-        status["setting"][1].draw_setting(screen)
-
-    if not status["edit_tab"]:
-        pos_edit = [1175, 560]
-        if 1125<=mx and 560<=my<=592:
-            pos_edit[0] -= 50 
-        draw_sidebar(0, font_sidebar, pos_edit, screen) 
-    else:
-        draw_edit_tab(screen, all_fancy_text, default_images)
+                status["add_edge"] = [False, None]
         
-    
-    pygame.display
-    pygame.display.flip()
-pygame.quit()
-sys.exit()
+        screen.fill((255, 220, 220))
+        graph.draw(screen, camera_position, node_size, edge_thickness)
+
+        if status["add_edge"][0]:
+            add_mode1 = font_edit_menu.render("Adding an", True, (40,40,40))
+            add_mode2 = font_edit_menu.render("Edge", True, (40,40,40))
+            screen.blit(add_mode1, (1000, 20))
+            screen.blit(add_mode2, (1000, 45))
+            if not status["add_edge"][1] == None:
+                node_pos = status["add_edge"][1].position
+                draw_disc(screen, (0, 255, 0, 180), int(node_size), node_pos)
+
+        if status["delete_edge"][0]:
+            if not status["delete_edge"][1] == None:
+                node_pos = status["delete_edge"][1].position
+                draw_disc(screen, (255, 128, 0, 180), int(node_size), node_pos)
+
+        if status["delete_node"][0] or status["delete_edge"][0]:
+            del_mode = font_edit_menu.render("Deletion Mode", True, (40,40,40))
+            screen.blit(del_mode, (1000, 20))
+            if status["delete_node"][0]:
+                del_mode2 = font_edit_menu.render("[Node]", True, (40,40,40))
+            else:
+                del_mode2 = font_edit_menu.render("[Edge]", True, (40,40,40))
+            screen.blit(del_mode2, (1000, 45))
+        
+        if not status["delete_node"][1] == None:
+            node_pos = graph.nodes[status["delete_node"][1]].position
+            draw_disc(screen, (255, 0, 0, 180), int(node_size), node_pos)
+            text = font_sidebar.render("Confirm ?", True, (40,40,40))
+            screen.blit(text, (node_pos[0]-node_size, node_pos[1]-node_size-20))
+
+        if status["setting"][0]:
+            status["setting"][1].draw_setting(screen)
+
+        if not status["edit_tab"]:
+            pos_edit = [1175, 560]
+            if 1125<=mx and 560<=my<=592:
+                pos_edit[0] -= 50 
+            draw_sidebar(0, font_sidebar, pos_edit, screen) 
+        else:
+            draw_edit_tab(screen, all_fancy_text, default_images)
+
+        if status["typing"][0]:
+                time = pygame.time.get_ticks()
+                show_underscore = (time//500)%2
+                draw_text_box(screen, show_underscore, typed, font_edit_menu)
+            
+        pygame.display.flip()
+        await asyncio.sleep(0)
+
+    pygame.quit()
+    sys.exit()
+
+asyncio.run(main())
 
 #on phone currently so i will plan ahead, for now
 # Add sound to button clicks
